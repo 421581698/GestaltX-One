@@ -50,7 +50,7 @@ public actor BackupStore {
     }
 
     public func verifyBackup(_ receipt: BackupReceipt) throws -> Bool {
-        let expectedPattern = "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}-\\(receipt.identifier.uuidString)\\\\.backup$"
+        let expectedPattern = "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}-\(receipt.identifier.uuidString)\\.backup$"
         guard receipt.byteCount >= 0,
               receipt.byteCount <= maximumBackupBytes,
               receipt.fileName.range(of: expectedPattern, options: .regularExpression) != nil else {
