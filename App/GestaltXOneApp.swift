@@ -101,7 +101,7 @@ private struct NativePairingView: View {
                                         .textSelection(.enabled)
                                     Spacer()
                                     Button {
-                                        UIPasteboard.general.string = pin.filter(\\.isNumber)
+                                        UIPasteboard.general.string = pin.filter(\.isNumber)
                                     } label: {
                                         Label("Copy", systemImage: "doc.on.doc")
                                     }
