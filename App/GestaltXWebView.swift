@@ -66,6 +66,7 @@ public struct GestaltXWebView: UIViewRepresentable {
         ) {
             guard let target = navigationAction.request.url,
                   target.scheme?.lowercased() == "https",
+                  (target.port == nil || target.port == 443),
                   target.host?.lowercased() == allowedHost else {
                 decisionHandler(.cancel)
                 return
