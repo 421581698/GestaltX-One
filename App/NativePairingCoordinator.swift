@@ -32,7 +32,7 @@ final class NativePairingCoordinator: ObservableObject {
     }
 
     var isBusy: Bool {
-        state == .advertising || state == .awaitingApproval || state == .cancelling
+        pairingTask != nil || state == .advertising || state == .awaitingApproval || state == .cancelling
     }
 
     func refresh() async {
@@ -94,7 +94,7 @@ final class NativePairingCoordinator: ObservableObject {
                 pairedDevice = metadata
                 pin = nil
                 state = .paired
-                await PairingNotifier.clear()
+                PairingNotifier.clear()
             } catch {
                 if Task.isCancelled {
                     state = .idle
@@ -115,8 +115,8 @@ final class NativePairingCoordinator: ObservableObject {
         advertiser.stop()
         pin = nil
         if isBusy { state = .cancelling }
-        endBackgroundLease()
-        Task { await PairingNotifier.clear() }
+        if pairingTask == nil { endBackgroundLease() }
+        PairingNotifier.clear()
     }
 
     func clearPairing() async {

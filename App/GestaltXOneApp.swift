@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct GestaltXOneApp: App {
@@ -32,6 +33,11 @@ private struct RootView: View {
                         Label("Tasks", systemImage: "square.grid.2x2")
                     }
             }
+
+            LegalNoticesView()
+                .tabItem {
+                    Label("About", systemImage: "info.circle")
+                }
         }
     }
 }
@@ -88,10 +94,19 @@ private struct NativePairingView: View {
                                 Text("Pairing code")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text(pin)
-                                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                                    .monospacedDigit()
-                                    .textSelection(.enabled)
+                                HStack {
+                                    Text(pin)
+                                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                                        .monospacedDigit()
+                                        .textSelection(.enabled)
+                                    Spacer()
+                                    Button {
+                                        UIPasteboard.general.string = pin.filter(\\.isNumber)
+                                    } label: {
+                                        Label("Copy", systemImage: "doc.on.doc")
+                                    }
+                                    .buttonStyle(.bordered)
+                                }
                             }
                             if let error = pairing.errorMessage {
                                 Text(error)

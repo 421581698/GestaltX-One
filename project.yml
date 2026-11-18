@@ -20,6 +20,7 @@ targets:
       - App/NativePairingRecordStore.swift
       - App/PairableHostAdvertiser.swift
       - App/PairingNotifier.swift
+      - App/LegalNoticesView.swift
       - Vendor/GestaltX/GestaltX/Localization.swift
     dependencies:
       - framework: Vendor/GestaltX/Native/DeviceConsole/build/GXDeviceConsole.xcframework

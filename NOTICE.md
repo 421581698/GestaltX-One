@@ -8,8 +8,9 @@ GestaltX One links the native `gx_device_console` static library from
 The native console is licensed under GPL-3.0-only. Its original source and
 copyright notices remain in the submodule. The Swift `DeviceConsole` wrapper
 is copied from the upstream project and remains under GPL-3.0-only.
-`PairableHostAdvertiser` is copied from the upstream project; its source
-retains the Locus MIT attribution included in that file.
+`PairableHostAdvertiser` and `PairingNotifier` are copied from the upstream
+project; the advertiser source retains the Locus MIT attribution included in
+that file.
 
 The combined iOS application links this GPL component. Distribution of a
 combined binary must comply with GPL-3.0, including providing the complete
