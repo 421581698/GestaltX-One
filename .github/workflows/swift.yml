@@ -42,10 +42,15 @@ jobs:
 
   native-console-ios:
     runs-on: macos-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Cache Rust build outputs
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Vendor/GestaltX/Native/DeviceConsole
       - name: Install Rust targets
         run: |
           rustup target add aarch64-apple-ios aarch64-apple-ios-sim
@@ -61,11 +66,17 @@ jobs:
           if-no-files-found: error
 
   ios-app:
+    needs: native-console-ios
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Download native console XCFramework
+        uses: actions/download-artifact@v4
+        with:
+          name: gx-device-console-xcframework
+          path: Vendor/GestaltX/Native/DeviceConsole/build/GXDeviceConsole.xcframework
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project

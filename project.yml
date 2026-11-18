@@ -13,6 +13,8 @@ targets:
     sources:
       - path: App
     dependencies:
+      - framework: Vendor/GestaltX/Native/DeviceConsole/build/GXDeviceConsole.xcframework
+        embed: false
       - package: GestaltXOneCore
         product: GestaltXOneCore
     settings:
