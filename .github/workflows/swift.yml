@@ -38,7 +38,7 @@ jobs:
       - name: Verify native console dependency
         run: test -f Vendor/GestaltX/Native/DeviceConsole/Cargo.toml
       - name: Test native console host configuration
-        run: cargo test --locked --manifest-path Vendor/GestaltX/Native/DeviceConsole/Cargo.toml
+        run: cargo test --locked --manifest-path Vendor/GestaltX/Native/DeviceConsole/Cargo.toml -- --test-threads=1
 
   native-console-ios:
     runs-on: macos-latest
