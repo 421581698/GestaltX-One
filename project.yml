@@ -1,0 +1,26 @@
+name: GestaltXOne
+options:
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+packages:
+  GestaltXOneCore:
+    path: .
+targets:
+  GestaltXOne:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: GestaltXOneCore
+        product: GestaltXOneCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gestaltx.one
+        PRODUCT_NAME: GestaltXOne
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_GESTALTX_CONTROL_PLANE_URL: "https://configure-your-domain.example"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
