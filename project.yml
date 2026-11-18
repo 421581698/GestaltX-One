@@ -23,6 +23,7 @@ targets:
         PRODUCT_NAME: GestaltXOne
         SWIFT_VERSION: "5.9"
         OTHER_LDFLAGS: "$(inherited) -lc++"
+        "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_GESTALTX_CONTROL_PLANE_URL: "https://configure-your-domain.example"
         TARGETED_DEVICE_FAMILY: "1,2"
