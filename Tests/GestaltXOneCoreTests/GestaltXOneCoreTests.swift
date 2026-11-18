@@ -4,12 +4,17 @@ import XCTest
 final class GestaltXOneCoreTests: XCTestCase {
     func testBridgeSessionRejectsReplayAndWrongNonce() async {
         let session = BridgeSession()
-        let request = BridgeRequest(action: .deviceGetInfo, nonce: await session.nonce)
-        XCTAssertTrue(await session.validateAndConsume(request))
-        XCTAssertFalse(await session.validateAndConsume(request))
+        let nonce = await session.nonce
+        let request = BridgeRequest(action: .deviceGetInfo, nonce: nonce)
+
+        let firstAcceptance = await session.validateAndConsume(request)
+        let replayAcceptance = await session.validateAndConsume(request)
+        XCTAssertTrue(firstAcceptance)
+        XCTAssertFalse(replayAcceptance)
 
         let forged = BridgeRequest(action: .deviceGetInfo, nonce: "wrong")
-        XCTAssertFalse(await session.validateAndConsume(forged))
+        let forgedAcceptance = await session.validateAndConsume(forged)
+        XCTAssertFalse(forgedAcceptance)
     }
 
     func testTaskRuntimeEnforcesLifecycle() async throws {
@@ -39,7 +44,8 @@ final class GestaltXOneCoreTests: XCTestCase {
 
         let store = BackupStore(directory: directory)
         let receipt = try await store.createBackup(data: Data("sample".utf8), name: "device-config")
-        XCTAssertTrue(try await store.verifyBackup(receipt))
+        let verified = try await store.verifyBackup(receipt)
+        XCTAssertTrue(verified)
     }
 
     func testUnsafeBackupNameIsRejected() async {
