@@ -14,7 +14,7 @@ private struct RootView: View {
         guard let raw = Bundle.main.object(forInfoDictionaryKey: "GESTALTX_CONTROL_PLANE_URL") as? String,
               let url = URL(string: raw),
               url.scheme?.lowercased() == "https",
-              let host = url.host else { return nil }
+              url.host != nil else { return nil }
         return url
     }
 
@@ -24,11 +24,16 @@ private struct RootView: View {
                 GestaltXWebView(url: url, allowedHost: host)
                     .ignoresSafeArea()
             } else {
-                ContentUnavailableView(
-                    "Control Center Not Configured",
-                    systemImage: "network.slash",
-                    description: Text("Set GESTALTX_CONTROL_PLANE_URL to your HTTPS control-center URL in the app build settings.")
-                )
+                VStack(spacing: 12) {
+                    Image(systemName: "network.slash")
+                        .font(.largeTitle)
+                    Text("Control Center Not Configured")
+                        .font(.headline)
+                    Text("Set GESTALTX_CONTROL_PLANE_URL to your HTTPS control-center URL in the app build settings.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
             }
         }
     }
