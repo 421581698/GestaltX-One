@@ -10,10 +10,12 @@ import Network
 /// `NetService` is not discovered reliably by the on-device pairing sheet.
 /// `NWListener` publishes the service iOS browses, and each accepted connection
 /// is relayed to the Rust pairable-host bound on 127.0.0.1.
+@MainActor
 final class PairableHostAdvertiser {
     private var listener: NWListener?
     private var relay: RelayPipe?
     private var rustPort: UInt16 = 0
+    var onFailure: ((String) -> Void)?
 
     func publish(port: UInt16, serviceID: String, txt: [String: String]) {
         stop()
@@ -36,20 +38,17 @@ final class PairableHostAdvertiser {
                 domain: "local",
                 txtRecord: record
             )
-            listener.stateUpdateHandler = { state in
-                switch state {
-                case .ready:
-                    _ = listener.port
-                default:
-                    break
+            listener.stateUpdateHandler = { [weak self] state in
+                if case .failed(let error) = state {
+                    Task { @MainActor in self?.onFailure?(error.localizedDescription) }
                 }
             }
             listener.newConnectionHandler = { [weak self] connection in
-                self?.relayInbound(connection)
+                Task { @MainActor in self?.relayInbound(connection) }
             }
             listener.start(queue: .global(qos: .userInitiated))
             self.listener = listener
-        } catch {}
+        } catch { onFailure?(error.localizedDescription) }
     }
 
     func stop() {

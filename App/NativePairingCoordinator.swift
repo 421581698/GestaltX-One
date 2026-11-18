@@ -1,7 +1,5 @@
 import Foundation
 import Combine
-import Network
-import UserNotifications
 import UIKit
 
 @MainActor
@@ -10,6 +8,7 @@ final class NativePairingCoordinator: ObservableObject {
         case idle
         case advertising
         case awaitingApproval
+        case cancelling
         case paired
         case failed
     }
@@ -24,8 +23,16 @@ final class NativePairingCoordinator: ObservableObject {
     private var pairingTask: Task<Void, Never>?
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
 
+    init() {
+        advertiser.onFailure = { [weak self] message in
+            guard let self, self.isBusy else { return }
+            self.errorMessage = "Bonjour advertising failed: \(message)"
+            self.cancel()
+        }
+    }
+
     var isBusy: Bool {
-        state == .advertising || state == .awaitingApproval
+        state == .advertising || state == .awaitingApproval || state == .cancelling
     }
 
     func refresh() async {
@@ -74,7 +81,6 @@ final class NativePairingCoordinator: ObservableObject {
                         Task { @MainActor in
                             self?.pin = Self.formattedPairingCode(value)
                             self?.state = .awaitingApproval
-                            await self?.notifyPairingCode(value)
                         }
                     }
                 )
@@ -89,12 +95,13 @@ final class NativePairingCoordinator: ObservableObject {
                 pairedDevice = metadata
                 pin = nil
                 state = .paired
-                await clearPairingNotification()
-            } catch is CancellationError {
-                state = .idle
             } catch {
-                errorMessage = error.localizedDescription
-                state = .failed
+                if Task.isCancelled {
+                    state = .idle
+                } else {
+                    errorMessage = error.localizedDescription
+                    state = .failed
+                }
             }
             advertiser.stop()
             endBackgroundLease()
@@ -107,8 +114,7 @@ final class NativePairingCoordinator: ObservableObject {
         pairingTask?.cancel()
         advertiser.stop()
         pin = nil
-        state = .idle
-        Task { await clearPairingNotification() }
+        if isBusy { state = .cancelling }
         endBackgroundLease()
     }
 
@@ -138,27 +144,6 @@ final class NativePairingCoordinator: ObservableObject {
         backgroundTask = .invalid
     }
 
-    private func notifyPairingCode(_ code: String) async {
-        let center = UNUserNotificationCenter.current()
-        let settings = await center.notificationSettings()
-        if settings.authorizationStatus == .notDetermined {
-            _ = try? await center.requestAuthorization(options: [.alert, .sound])
-        }
-        let updated = await center.notificationSettings()
-        guard updated.authorizationStatus == .authorized || updated.authorizationStatus == .provisional else { return }
-
-        let content = UNMutableNotificationContent()
-        content.title = "GestaltX One pairing code"
-        content.body = "\(Self.formattedPairingCode(code)) — enter this code in iOS Settings to finish pairing."
-        content.sound = .default
-        content.threadIdentifier = "gestaltxone.pairing"
-        try? await center.add(UNNotificationRequest(
-            identifier: "gestaltxone.pairing.code",
-            content: content,
-            trigger: nil
-        ))
-    }
-
     private static func formattedPairingCode(_ code: String) -> String {
         let digits = code.filter(\.isNumber)
         guard digits.count == 6 else { return code }
@@ -166,9 +151,4 @@ final class NativePairingCoordinator: ObservableObject {
         return "\(digits[..<split]) \(digits[split...])"
     }
 
-    private func clearPairingNotification() async {
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: ["gestaltxone.pairing.code"])
-        center.removeDeliveredNotifications(withIdentifiers: ["gestaltxone.pairing.code"])
-    }
 }

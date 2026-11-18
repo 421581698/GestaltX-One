@@ -155,6 +155,7 @@ private extension NativePairingCoordinator.State {
         case .idle: "Not paired"
         case .advertising: "Waiting for iOS pairing"
         case .awaitingApproval: "Enter the pairing code in Settings"
+        case .cancelling: "Cancelling pairing…"
         case .paired: "Paired"
         case .failed: "Pairing failed"
         }
@@ -165,6 +166,7 @@ private extension NativePairingCoordinator.State {
         case .idle: "circle"
         case .advertising: "dot.radiowaves.left.and.right"
         case .awaitingApproval: "number.circle"
+        case .cancelling: "stop.circle"
         case .paired: "checkmark.circle.fill"
         case .failed: "exclamationmark.triangle"
         }
