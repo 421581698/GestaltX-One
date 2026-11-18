@@ -17,17 +17,31 @@ public struct PairingReadiness: Codable, Sendable, Equatable {
         self.localNetworkPermissionGranted = localNetworkPermissionGranted
     }
 
+    /// Pairing advertises a local host and requires Developer Mode plus Local Network permission.
+    /// The RSD tunnel is a later connection prerequisite, not a pairing prerequisite.
     public var canAttemptPairing: Bool {
-        developerModeEnabled && localDevelopmentTunnelReady && localNetworkPermissionGranted
+        developerModeEnabled && localNetworkPermissionGranted
     }
 
-    public var missingRequirements: [String] {
+    public var canOpenDeviceSession: Bool {
+        canAttemptPairing && localDevelopmentTunnelReady
+    }
+
+    public var missingPairingRequirements: [String] {
         var missing: [String] = []
-        if !developerModeEnabled { missing.append("Developer Mode is not enabled") }
-        if !localDevelopmentTunnelReady { missing.append("The local development tunnel is not ready") }
+        if !developerModeEnabled { missing.append("Developer Mode has not been confirmed") }
         if !localNetworkPermissionGranted { missing.append("Local Network permission has not been granted") }
         return missing
     }
+
+    public var missingSessionRequirements: [String] {
+        var missing = missingPairingRequirements
+        if !localDevelopmentTunnelReady { missing.append("The local development tunnel is not ready") }
+        return missing
+    }
+
+    /// Compatibility name for callers displaying pairing prerequisites.
+    public var missingRequirements: [String] { missingPairingRequirements }
 }
 
 public enum PairingState: String, Codable, Sendable {

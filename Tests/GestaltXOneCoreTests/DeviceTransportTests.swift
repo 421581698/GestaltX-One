@@ -2,7 +2,20 @@ import XCTest
 @testable import GestaltXOneCore
 
 final class DeviceTransportTests: XCTestCase {
-    func testPairingRequiresEverySystemPrerequisite() {
+    func testPairingDoesNotRequireTheLaterRSDTunnel() {
+        let readiness = PairingReadiness(
+            developerModeEnabled: true,
+            localDevelopmentTunnelReady: false,
+            localNetworkPermissionGranted: true
+        )
+
+        XCTAssertTrue(readiness.canAttemptPairing)
+        XCTAssertFalse(readiness.canOpenDeviceSession)
+        XCTAssertTrue(readiness.missingPairingRequirements.isEmpty)
+        XCTAssertEqual(readiness.missingSessionRequirements, ["The local development tunnel is not ready"])
+    }
+
+    func testPairingRequiresDeveloperModeAndLocalNetworkPermission() {
         let readiness = PairingReadiness(
             developerModeEnabled: true,
             localDevelopmentTunnelReady: true,
@@ -10,18 +23,7 @@ final class DeviceTransportTests: XCTestCase {
         )
 
         XCTAssertFalse(readiness.canAttemptPairing)
-        XCTAssertEqual(readiness.missingRequirements, ["Local Network permission has not been granted"])
-    }
-
-    func testPairingBecomesReadyOnlyWhenAllPrerequisitesArePresent() {
-        let readiness = PairingReadiness(
-            developerModeEnabled: true,
-            localDevelopmentTunnelReady: true,
-            localNetworkPermissionGranted: true
-        )
-
-        XCTAssertTrue(readiness.canAttemptPairing)
-        XCTAssertTrue(readiness.missingRequirements.isEmpty)
+        XCTAssertFalse(readiness.missingPairingRequirements.isEmpty)
     }
 
     func testUnavailableTransportDoesNotPretendPairingWorks() async {

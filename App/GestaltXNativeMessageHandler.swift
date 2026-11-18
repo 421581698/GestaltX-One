@@ -105,7 +105,9 @@ final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithRe
                     "localDevelopmentTunnelReady": String(pairing.readiness.localDevelopmentTunnelReady),
                     "localNetworkPermissionGranted": String(pairing.readiness.localNetworkPermissionGranted),
                     "canAttemptPairing": String(pairing.readiness.canAttemptPairing),
-                    "missingRequirements": pairing.readiness.missingRequirements.joined(separator: " | "),
+                    "canOpenDeviceSession": String(pairing.readiness.canOpenDeviceSession),
+                    "missingPairingRequirements": pairing.readiness.missingPairingRequirements.joined(separator: " | "),
+                    "missingSessionRequirements": pairing.readiness.missingSessionRequirements.joined(separator: " | "),
                     "detail": pairing.detail ?? ""
                 ]
             )
