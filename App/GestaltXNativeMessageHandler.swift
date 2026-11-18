@@ -6,7 +6,7 @@ import GestaltXOneCore
 final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithReply {
     private let expectedHost: String
     let session: BridgeSession
-    private let deviceAdapter = SystemDeviceAdapter()
+    private let deviceTransport = UnavailableDeviceTransport()
     private let taskRuntime = TaskRuntime()
     private let backupStore: BackupStore
 
@@ -64,7 +64,7 @@ final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithRe
     private func dispatch(_ request: BridgeRequest) async throws -> BridgeResponse {
         switch request.action {
         case .deviceGetInfo:
-            let snapshot = await deviceAdapter.snapshot()
+            let snapshot = await deviceTransport.snapshot()
             return BridgeResponse(
                 requestID: request.requestID,
                 success: true,
@@ -78,7 +78,7 @@ final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithRe
             )
 
         case .deviceGetCapabilities:
-            let value = await deviceAdapter.capabilities()
+            let value = await deviceTransport.capabilities()
             return BridgeResponse(
                 requestID: request.requestID,
                 success: true,
@@ -95,11 +95,19 @@ final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithRe
             )
 
         case .deviceGetPairingStatus:
+            let pairing = await deviceTransport.pairingStatus()
             return BridgeResponse(
                 requestID: request.requestID,
                 success: true,
-                status: "unsupported",
-                data: ["available": "false", "reason": "Pairing transport has not been integrated"]
+                status: pairing.state.rawValue,
+                data: [
+                    "developerModeEnabled": String(pairing.readiness.developerModeEnabled),
+                    "localDevelopmentTunnelReady": String(pairing.readiness.localDevelopmentTunnelReady),
+                    "localNetworkPermissionGranted": String(pairing.readiness.localNetworkPermissionGranted),
+                    "canAttemptPairing": String(pairing.readiness.canAttemptPairing),
+                    "missingRequirements": pairing.readiness.missingRequirements.joined(separator: " | "),
+                    "detail": pairing.detail ?? ""
+                ]
             )
 
         case .backupGetStatus:
