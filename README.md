@@ -8,7 +8,7 @@ A safety-first iPhone task platform with a web control surface and a native iOS 
 
 - **Web control plane**: creates tasks and presents progress. It never receives arbitrary system-command access.
 - **Native bridge**: accepts a small allowlist of typed requests from the first-party web origin.
-- **Device adapter**: reports only capabilities that the installed native host can actually verify.
+- **Device adapter / transport**: reports only capabilities the installed host can verify. `DeviceTransport` defines the pairing boundary; the current `UnavailableDeviceTransport` intentionally performs no discovery or pairing.
 - **Task runtime**: tracks task lifecycle, cancellation, and structured events.
 - **Backup store**: writes versioned, integrity-checkable backup artifacts before any future mutation workflow.
 - **GestaltX adapter**: planned integration boundary. Any reuse of GestaltX GPL-3.0 code must preserve notices and comply with GPL-3.0 distribution obligations.
@@ -37,7 +37,7 @@ swift test
 1. Only the configured HTTPS origin and main frame may call the bridge.
 2. Bridge actions are allowlisted and strongly typed.
 3. Each bridge session uses a native-generated nonce; request identifiers are replay-protected.
-4. Mutating actions are not exposed in this initial version.
+4. Pairing readiness is reported separately for Developer Mode, the local development tunnel, and Local Network permission; missing prerequisites block pairing.
 5. Backups are created and verified before future write operations.
 6. iOS signing, Developer Mode, local network permissions, pairing, and system confirmation remain under Apple's control. This project does not bypass them.
 
@@ -57,8 +57,8 @@ Before a real device build, replace the placeholder `GESTALTX_CONTROL_PLANE_URL`
 
 - `device.getInfo`
 - `device.getCapabilities`
-- `device.getPairingStatus` (reports unsupported until a real pairing adapter is integrated)
+- `device.getPairingStatus` (reports explicit unavailable state and missing prerequisites until a real pairing adapter is integrated)
 - `backup.getStatus`
 - `task.getStatus`
 
-No MobileGestalt read/write operation is claimed as implemented.
+No MobileGestalt read/write operation is claimed as implemented. The upstream GestaltX source is GPL-3.0; no upstream implementation files have been copied into this repository. Any future source reuse must preserve notices, mark modifications, and comply with GPL-3.0 for the covered combined work.
