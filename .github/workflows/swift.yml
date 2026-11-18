@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   core:
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,8 +40,28 @@ jobs:
       - name: Test native console host configuration
         run: cargo test --locked --manifest-path Vendor/GestaltX/Native/DeviceConsole/Cargo.toml
 
+  native-console-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install Rust targets
+        run: |
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+      - name: Install native build dependencies
+        run: brew install cmake nasm
+      - name: Build iOS device and simulator XCFramework
+        run: Vendor/GestaltX/Native/DeviceConsole/build-xcframework.sh
+      - name: Upload native XCFramework
+        uses: actions/upload-artifact@v4
+        with:
+          name: gx-device-console-xcframework
+          path: Vendor/GestaltX/Native/DeviceConsole/build/GXDeviceConsole.xcframework
+          if-no-files-found: error
+
   ios-app:
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
