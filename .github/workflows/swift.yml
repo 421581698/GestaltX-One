@@ -12,7 +12,7 @@ permissions:
 # Queue commits on the same ref instead of cancelling every earlier run
 # while a multi-file change is being committed.
 concurrency:
-  group: swift-ios-ci-\${{ github.ref }}
+  group: swift-ios-ci-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
