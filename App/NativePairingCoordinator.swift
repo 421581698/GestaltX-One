@@ -1,76 +1,82 @@
-import Combine
 import Foundation
+import Network
+import UserNotifications
 import UIKit
 
 @MainActor
 final class NativePairingCoordinator: ObservableObject {
-    enum State: Equatable {
+    enum State {
         case idle
-        case preparing
         case advertising
-        case awaitingPin
+        case awaitingApproval
         case paired
-        case failed(String)
+        case failed
     }
 
     @Published private(set) var state: State = .idle
     @Published private(set) var pin: String?
     @Published private(set) var pairedDevice: NativePairingMetadata?
+    @Published private(set) var errorMessage: String?
 
     private let store = NativePairingRecordStore()
     private let advertiser = PairableHostAdvertiser()
     private var pairingTask: Task<Void, Never>?
+    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
 
-    var isBusy: Bool { pairingTask != nil }
+    var isBusy: Bool {
+        state == .advertising || state == .awaitingApproval
+    }
 
-    func refresh() {
-        Task {
-            do {
-                pairedDevice = try await store.load()
-                if pairedDevice != nil { state = .paired }
-            } catch {
-                state = .failed("Saved pairing data could not be verified: \\(error.localizedDescription)")
-            }
+    func refresh() async {
+        do {
+            pairedDevice = try await store.load()
+            state = pairedDevice == nil ? .idle : .paired
+        } catch {
+            errorMessage = "Saved pairing data could not be verified: \(error.localizedDescription)"
+            state = .failed
         }
     }
 
-    /// Starts pairing only after an explicit native button tap.
-    func startPairing() {
-        guard pairingTask == nil, pairedDevice == nil else { return }
-        state = .preparing
+    func beginPairing(developerModeConfirmed: Bool) {
+        guard developerModeConfirmed else {
+            errorMessage = "Confirm that Developer Mode is enabled in iOS Settings first."
+            return
+        }
+        guard GXDeviceConsoleRuntime.isLinked else {
+            errorMessage = "The native device console is not linked in this build."
+            return
+        }
+        guard !isBusy, pairedDevice == nil else { return }
+
+        errorMessage = nil
         pin = nil
+        state = .advertising
+        beginBackgroundLease()
 
         pairingTask = Task { [weak self] in
             guard let self else { return }
             do {
                 let destination = try await store.preparePairingDestination()
-                let previous = try await store.load()
                 let outcome = try await DeviceConsole.shared.runPairing(
                     bindAddr: "0.0.0.0",
                     port: 0,
                     name: "GestaltX One",
                     model: UIDevice.current.model,
                     outPath: destination.path,
-                    altIRKHex: previous?.hostAltIRKHex ?? "",
+                    altIRKHex: "",
                     ready: { [weak self] serviceID, port, txt in
                         Task { @MainActor in
                             self?.advertiser.publish(port: port, serviceID: serviceID, txt: txt)
-                            self?.state = .advertising
                         }
                     },
                     pin: { [weak self] value in
                         Task { @MainActor in
-                            self?.pin = value
-                            self?.state = .awaitingPin
+                            self?.pin = PairingNotifier.formatted(value)
+                            self?.state = .awaitingApproval
+                            await self?.notifyPairingCode(value)
                         }
                     }
                 )
-
-                let returnedPath = URL(fileURLWithPath: outcome.pairingFilePath).standardizedFileURL
-                guard returnedPath == destination.standardizedFileURL else {
-                    throw NativePairingError.unexpectedPairingPath
-                }
-
                 let metadata = NativePairingMetadata(
                     deviceName: outcome.deviceName,
                     deviceModel: outcome.deviceModel,
@@ -80,15 +86,17 @@ final class NativePairingCoordinator: ObservableObject {
                 )
                 try await store.saveSuccessfulPairing(metadata)
                 pairedDevice = metadata
+                pin = nil
                 state = .paired
+                await clearPairingNotification()
             } catch is CancellationError {
                 state = .idle
             } catch {
-                state = .failed(error.localizedDescription)
+                errorMessage = error.localizedDescription
+                state = .failed
             }
-
             advertiser.stop()
-            pin = nil
+            endBackgroundLease()
             pairingTask = nil
         }
     }
@@ -97,31 +105,62 @@ final class NativePairingCoordinator: ObservableObject {
         DeviceConsole.shared.cancelCurrent()
         pairingTask?.cancel()
         advertiser.stop()
+        pin = nil
+        state = .idle
+        Task { await clearPairingNotification() }
+        endBackgroundLease()
     }
 
-    func clearPairing() {
-        guard pairingTask == nil else { return }
-        Task {
-            do {
-                try await store.clear()
-                pairedDevice = nil
-                pin = nil
-                state = .idle
-            } catch {
-                state = .failed("Could not safely remove pairing data: \\(error.localizedDescription)")
-            }
+    func clearPairing() async {
+        cancel()
+        do {
+            try await store.clear()
+            pairedDevice = nil
+            errorMessage = nil
+            state = .idle
+        } catch {
+            errorMessage = "The pairing record could not be removed: \(error.localizedDescription)"
+            state = .failed
         }
     }
-}
 
-private enum NativePairingError: LocalizedError {
-    case unexpectedPairingPath
+    private func beginBackgroundLease() {
+        guard backgroundTask == .invalid else { return }
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "GestaltXOne.Pairing") { [weak self] in
+            self?.cancel()
+        }
+    }
 
-    var errorDescription: String? {
-        "The native pairing library returned an unexpected credential path."
+    private func endBackgroundLease() {
+        guard backgroundTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTask)
+        backgroundTask = .invalid
+    }
+
+    private func notifyPairingCode(_ code: String) async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        if settings.authorizationStatus == .notDetermined {
+            _ = try? await center.requestAuthorization(options: [.alert, .sound])
+        }
+        let updated = await center.notificationSettings()
+        guard updated.authorizationStatus == .authorized || updated.authorizationStatus == .provisional else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "GestaltX One pairing code"
+        content.body = "\(PairingNotifier.formatted(code)) — enter this code in iOS Settings to finish pairing."
+        content.sound = .default
+        content.threadIdentifier = "gestaltxone.pairing"
+        try? await center.add(UNNotificationRequest(
+            identifier: "gestaltxone.pairing.code",
+            content: content,
+            trigger: nil
+        ))
+    }
+
+    private func clearPairingNotification() async {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ["gestaltxone.pairing.code"])
+        center.removeDeliveredNotifications(withIdentifiers: ["gestaltxone.pairing.code"])
     }
 }
-
-/// The upstream DeviceConsole wrapper uses this localization hook for its
-/// fallback strings. GestaltX One currently ships the English source strings.
-func L(_ value: String) -> String { value }

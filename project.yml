@@ -12,6 +12,9 @@ targets:
     platform: iOS
     sources:
       - path: App
+      - path: Vendor/GestaltX/GestaltX/DeviceConsole.swift
+      - path: Vendor/GestaltX/GestaltX/PairableHostAdvertiser.swift
+      - path: Vendor/GestaltX/GestaltX/Localization.swift
     dependencies:
       - framework: Vendor/GestaltX/Native/DeviceConsole/build/GXDeviceConsole.xcframework
         embed: false
@@ -29,5 +32,10 @@ targets:
         "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_GESTALTX_CONTROL_PLANE_URL: "https://configure-your-domain.example"
+    info:
+      properties:
+        NSLocalNetworkUsageDescription: "GestaltX One advertises a temporary local pairing host so you can pair this iPhone through iOS Developer Mode."
+        NSBonjourServices:
+          - _remotepairing-pairable-host._tcp
         TARGETED_DEVICE_FAMILY: "1,2"
         IPHONEOS_DEPLOYMENT_TARGET: "16.0"

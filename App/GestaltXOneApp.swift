@@ -10,48 +10,162 @@ struct GestaltXOneApp: App {
 }
 
 private struct RootView: View {
-    @State private var showingPairing = false
-
     private var controlPlaneURL: URL? {
         guard let raw = Bundle.main.object(forInfoDictionaryKey: "GESTALTX_CONTROL_PLANE_URL") as? String,
               let url = URL(string: raw),
               url.scheme?.lowercased() == "https",
-              url.host != nil else { return nil }
+              url.host != nil,
+              url.host != "configure-your-domain.example" else { return nil }
         return url
     }
 
     var body: some View {
-        Group {
+        TabView {
+            NativePairingView()
+                .tabItem {
+                    Label("Device", systemImage: "iphone")
+                }
+
             if let url = controlPlaneURL, let host = url.host {
                 GestaltXWebView(url: url, allowedHost: host)
-                    .ignoresSafeArea()
-                    .overlay(alignment: .bottomTrailing) {
-                        Button {
-                            showingPairing = true
-                        } label: {
-                            Label("设备配对", systemImage: "link")
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .background(.regularMaterial, in: Capsule())
+                    .tabItem {
+                        Label("Tasks", systemImage: "square.grid.2x2")
+                    }
+            }
+        }
+    }
+}
+
+@MainActor
+private struct NativePairingView: View {
+    @StateObject private var pairing = NativePairingCoordinator()
+    @State private var developerModeConfirmed = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("GestaltX One")
+                            .font(.largeTitle.bold())
+                        Text("Secure device pairing")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label(
+                                GXDeviceConsoleRuntime.isLinked ? "Native transport linked" : "Native transport unavailable",
+                                systemImage: GXDeviceConsoleRuntime.isLinked ? "checkmark.circle.fill" : "xmark.circle"
+                            )
+                            .foregroundStyle(GXDeviceConsoleRuntime.isLinked ? .green : .secondary)
+
+                            Text("Pairing uses the iOS Developer Mode pairing flow. It does not bypass Apple's system permissions.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
-                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .sheet(isPresented: $showingPairing) {
-                        NativePairingView()
+
+                    GroupBox("Before pairing") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("1. Enable Developer Mode in Settings → Privacy & Security → Developer Mode.")
+                            Text("2. Return here and confirm that Developer Mode is enabled.")
+                            Text("3. Start pairing, then follow the pairing prompt in Settings.")
+                            Toggle("I have enabled Developer Mode on this iPhone", isOn: $developerModeConfirmed)
+                                .font(.subheadline)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "network.slash")
-                        .font(.largeTitle)
-                    Text("控制中心尚未配置")
-                        .font(.headline)
-                    Text("先完成原生设备配对。网页控制中心需要配置 HTTPS 域名后才能启用。")
-                        .multilineTextAlignment(.center)
+
+                    GroupBox("Pairing status") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label(pairing.state.title, systemImage: pairing.state.symbol)
+                                .font(.headline)
+                            if let metadata = pairing.pairedDevice {
+                                Text("Paired: \(metadata.deviceName) · \(metadata.deviceModel)")
+                                    .font(.footnote)
+                            }
+                            if let pin = pairing.pin {
+                                Text("Pairing code")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(pin)
+                                    .font(.system(size: 30, weight: .bold, design: .rounded).monospacedDigit())
+                                    .textSelection(.enabled)
+                            }
+                            if let error = pairing.errorMessage {
+                                Text(error)
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    HStack {
+                        Button {
+                            pairing.beginPairing(developerModeConfirmed: developerModeConfirmed)
+                        } label: {
+                            Label("Start pairing", systemImage: "link")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!developerModeConfirmed || !GXDeviceConsoleRuntime.isLinked || pairing.isBusy || pairing.pairedDevice != nil)
+
+                        if pairing.isBusy {
+                            Button(role: .destructive) {
+                                pairing.cancel()
+                            } label: {
+                                Image(systemName: "stop.circle")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+
+                    if pairing.pairedDevice != nil {
+                        Button(role: .destructive) {
+                            Task { await pairing.clearPairing() }
+                        } label: {
+                            Label("Remove pairing record", systemImage: "trash")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    Text("The pairing code is temporary. Keep this app open while switching to Settings. iOS may suspend background work; if pairing stops, return here and retry.")
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
-                    NativePairingView()
                 }
                 .padding()
             }
+            .navigationTitle("Device")
+            .navigationBarTitleDisplayMode(.inline)
+            .task {
+                await pairing.refresh()
+            }
+        }
+    }
+}
+
+private extension NativePairingCoordinator.State {
+    var title: String {
+        switch self {
+        case .idle: "Not paired"
+        case .advertising: "Waiting for iOS pairing"
+        case .awaitingApproval: "Enter the pairing code in Settings"
+        case .paired: "Paired"
+        case .failed: "Pairing failed"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .idle: "circle"
+        case .advertising: "dot.radiowaves.left.and.right"
+        case .awaitingApproval: "number.circle"
+        case .paired: "checkmark.circle.fill"
+        case .failed: "exclamationmark.triangle"
         }
     }
 }
