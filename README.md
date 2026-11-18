@@ -11,7 +11,7 @@ A safety-first iPhone task platform with a web control surface and a native iOS 
 - **Device adapter / transport**: reports only capabilities the installed host can verify. `DeviceTransport` defines the pairing boundary; the current `UnavailableDeviceTransport` intentionally performs no discovery or pairing.
 - **Task runtime**: tracks task lifecycle, cancellation, and structured events.
 - **Backup store**: writes versioned, integrity-checkable backup artifacts before any future mutation workflow.
-- **GestaltX adapter**: planned integration boundary. Any reuse of GestaltX GPL-3.0 code must preserve notices and comply with GPL-3.0 distribution obligations.
+- **Upstream native component**: `Vendor/GestaltX` pins the official GestaltX repository at a reviewed commit. Its `Native/DeviceConsole` crate is GPL-3.0-only and is tested separately. The current app does not yet link the generated XCFramework or invoke pairing.
 
 ## Repository layout
 
@@ -21,7 +21,8 @@ Tests/GestaltXOneCoreTests/
 App/                       SwiftUI iOS host and WKWebView bridge
 Web/                       Typed TypeScript bridge client
 project.yml                XcodeGen project definition
-.github/workflows/         Swift package and iOS simulator CI
+Vendor/GestaltX/           Pinned upstream GestaltX source submodule (GPL-3.0 component)
+.github/workflows/         Swift, Rust host tests, native iOS cross-build and simulator CI
 ```
 
 ## Development
@@ -37,7 +38,7 @@ swift test
 1. Only the configured HTTPS origin and main frame may call the bridge.
 2. Bridge actions are allowlisted and strongly typed.
 3. Each bridge session uses a native-generated nonce; request identifiers are replay-protected.
-4. Pairing readiness is reported separately for Developer Mode, the local development tunnel, and Local Network permission; missing prerequisites block pairing.
+4. Pairing readiness distinguishes the pairing prerequisites (user-confirmed Developer Mode and Local Network permission) from the later RSD device-session prerequisite (local development tunnel). iOS does not expose every prerequisite as a trustworthy public programmatic status.
 5. Backups are created and verified before future write operations.
 6. iOS signing, Developer Mode, local network permissions, pairing, and system confirmation remain under Apple's control. This project does not bypass them.
 
@@ -57,8 +58,8 @@ Before a real device build, replace the placeholder `GESTALTX_CONTROL_PLANE_URL`
 
 - `device.getInfo`
 - `device.getCapabilities`
-- `device.getPairingStatus` (reports explicit unavailable state and missing prerequisites until a real pairing adapter is integrated)
+- `device.getPairingStatus` (reports explicit unavailable state and missing prerequisites until the native adapter is linked and wired)
 - `backup.getStatus`
 - `task.getStatus`
 
-No MobileGestalt read/write operation is claimed as implemented. The upstream GestaltX source is GPL-3.0; no upstream implementation files have been copied into this repository. Any future source reuse must preserve notices, mark modifications, and comply with GPL-3.0 for the covered combined work.
+No MobileGestalt read/write operation or working pairing UI is claimed as implemented. The upstream repository is pinned as a Git submodule, not copied into the app's source tree. Its native console supports pairing/RSD transport only; MobileGestalt access is a separate upstream path and is not enabled here. Any distributed combined build incorporating the GPL-3.0 component must preserve notices and meet the corresponding-source and licensing obligations. See `Vendor/README.md`.
