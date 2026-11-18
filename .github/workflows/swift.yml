@@ -1,4 +1,4 @@
-name: Swift CI
+name: Swift and iOS CI
 
 on:
   push:
@@ -10,13 +10,24 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  core:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - name: Select Swift
         run: swift --version
-      - name: Build
+      - name: Build core package
         run: swift build
-      - name: Test
+      - name: Test core package
         run: swift test
+
+  ios-app:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build iOS Simulator app
+        run: xcodebuild -project GestaltXOne.xcodeproj -scheme GestaltXOne -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
