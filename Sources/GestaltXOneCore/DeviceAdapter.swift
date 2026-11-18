@@ -1,19 +1,25 @@
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#endif
 
 public struct DeviceSnapshot: Codable, Sendable, Equatable {
     public let operatingSystem: String
     public let operatingSystemVersion: String
+    public let deviceModelIdentifier: String
     public let processArchitecture: String
     public let isSimulator: Bool
 
     public init(
         operatingSystem: String,
         operatingSystemVersion: String,
+        deviceModelIdentifier: String,
         processArchitecture: String,
         isSimulator: Bool
     ) {
         self.operatingSystem = operatingSystem
         self.operatingSystemVersion = operatingSystemVersion
+        self.deviceModelIdentifier = deviceModelIdentifier
         self.processArchitecture = processArchitecture
         self.isSimulator = isSimulator
     }
@@ -67,9 +73,16 @@ public struct SystemDeviceAdapter: DeviceAdapting {
         let simulator = false
         #endif
 
+        #if os(iOS)
+        let modelIdentifier = Self.machineIdentifier()
+        #else
+        let modelIdentifier = "not-available-on-this-platform"
+        #endif
+
         return DeviceSnapshot(
             operatingSystem: operatingSystem,
             operatingSystemVersion: process.operatingSystemVersionString,
+            deviceModelIdentifier: modelIdentifier,
             processArchitecture: "not-exposed-by-portable-adapter",
             isSimulator: simulator
         )
@@ -78,4 +91,18 @@ public struct SystemDeviceAdapter: DeviceAdapting {
     public func capabilities() async -> CapabilitySnapshot {
         .baseline
     }
+
+    #if os(iOS) && canImport(Darwin)
+    private static func machineIdentifier() -> String {
+        var size = 0
+        guard sysctlbyname("hw.machine", nil, &size, nil, 0) == 0, size > 0 else {
+            return "unknown"
+        }
+        var machine = [CChar](repeating: 0, count: size)
+        guard sysctlbyname("hw.machine", &machine, &size, nil, 0) == 0 else {
+            return "unknown"
+        }
+        return String(cString: machine)
+    }
+    #endif
 }
