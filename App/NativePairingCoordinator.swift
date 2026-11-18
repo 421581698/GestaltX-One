@@ -55,6 +55,7 @@ final class NativePairingCoordinator: ObservableObject {
         errorMessage = nil
         pin = nil
         state = .advertising
+        Task { await PairingNotifier.requestAuthorization() }
         beginBackgroundLease()
 
         pairingTask = Task { [weak self] in
@@ -78,6 +79,7 @@ final class NativePairingCoordinator: ObservableObject {
                         Task { @MainActor in
                             self?.pin = Self.formattedPairingCode(value)
                             self?.state = .awaitingApproval
+                            Task { await PairingNotifier.show(code: value) }
                         }
                     }
                 )
@@ -92,6 +94,7 @@ final class NativePairingCoordinator: ObservableObject {
                 pairedDevice = metadata
                 pin = nil
                 state = .paired
+                await PairingNotifier.clear()
             } catch {
                 if Task.isCancelled {
                     state = .idle
@@ -113,6 +116,7 @@ final class NativePairingCoordinator: ObservableObject {
         pin = nil
         if isBusy { state = .cancelling }
         endBackgroundLease()
+        Task { await PairingNotifier.clear() }
     }
 
     func clearPairing() async {

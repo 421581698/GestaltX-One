@@ -89,29 +89,35 @@ final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithRe
                     "localBackupAvailable": String(value.localBackupAvailable),
                     "mobileGestaltReadAvailable": String(value.mobileGestaltReadAvailable),
                     "mobileGestaltWriteAvailable": String(value.mobileGestaltWriteAvailable),
-                    "devicePairingAvailable": String(value.devicePairingAvailable),
+                    "devicePairingAvailable": String(GXDeviceConsoleRuntime.isLinked),
                     "nativeDeviceConsoleLinked": String(GXDeviceConsoleRuntime.isLinked),
-                    "notes": value.notes.joined(separator: " | ")
+                    "notes": (value.notes.filter { !$0.contains("Pairing requires") } + ["Pairing starts from the native Device tab.", "MobileGestalt read/write is not implemented."]).joined(separator: " | ")
                 ]
             )
 
         case .deviceGetPairingStatus:
-            let pairing = await deviceTransport.pairingStatus()
-            return BridgeResponse(
-                requestID: request.requestID,
-                success: true,
-                status: pairing.state.rawValue,
-                data: [
-                    "developerModeEnabled": String(pairing.readiness.developerModeEnabled),
-                    "localDevelopmentTunnelReady": String(pairing.readiness.localDevelopmentTunnelReady),
-                    "localNetworkPermissionGranted": String(pairing.readiness.localNetworkPermissionGranted),
-                    "canAttemptPairing": String(pairing.readiness.canAttemptPairing),
-                    "canOpenDeviceSession": String(pairing.readiness.canOpenDeviceSession),
-                    "missingPairingRequirements": pairing.readiness.missingPairingRequirements.joined(separator: " | "),
-                    "missingSessionRequirements": pairing.readiness.missingSessionRequirements.joined(separator: " | "),
-                    "detail": pairing.detail ?? ""
-                ]
-            )
+            do {
+                let metadata = try await NativePairingRecordStore().load()
+                return BridgeResponse(
+                    requestID: request.requestID,
+                    success: true,
+                    status: metadata == nil ? "not_paired" : "paired",
+                    data: [
+                        "nativePairingUIAvailable": String(GXDeviceConsoleRuntime.isLinked),
+                        "pairingInitiation": "native_device_tab_only",
+                        "deviceName": metadata?.deviceName ?? "",
+                        "deviceModel": metadata?.deviceModel ?? "",
+                        "detail": "Pairing is initiated and confirmed in the native Device tab. System permission state is not inferred."
+                    ]
+                )
+            } catch {
+                return BridgeResponse(
+                    requestID: request.requestID,
+                    success: false,
+                    status: "verification_failed",
+                    error: error.localizedDescription
+                )
+            }
 
         case .backupGetStatus:
             let exists = await backupStore.backupDirectoryExists()
