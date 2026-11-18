@@ -26,6 +26,7 @@ targets:
         PRODUCT_NAME: GestaltXOne
         SWIFT_VERSION: "5.9"
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) GXDEVICECONSOLE"
+        SWIFT_OBJC_BRIDGING_HEADER: App/GXDeviceConsole-Bridging-Header.h
         OTHER_LDFLAGS: "$(inherited) -lc++"
         "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
         GENERATE_INFOPLIST_FILE: YES
