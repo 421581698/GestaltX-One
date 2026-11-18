@@ -1,4 +1,5 @@
 import Foundation
+import GXDeviceConsole
 
 /// Minimal link boundary for the pinned native console library.
 /// The C ABI is imported through the target's bridging header.

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
+// Modified by GestaltX One contributors on 2026-11-18: import the XCFramework
+// Clang module directly instead of relying on the upstream app's bridging header.
 import Foundation
+import GXDeviceConsole
 
 enum DeviceConsoleError: LocalizedError {
     case unavailable
