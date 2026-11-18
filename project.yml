@@ -22,6 +22,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.gestaltx.one
         PRODUCT_NAME: GestaltXOne
         SWIFT_VERSION: "5.9"
+        OTHER_LDFLAGS: "$(inherited) -lc++"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_GESTALTX_CONTROL_PLANE_URL: "https://configure-your-domain.example"
         TARGETED_DEVICE_FAMILY: "1,2"
