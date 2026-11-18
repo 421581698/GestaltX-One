@@ -12,8 +12,10 @@ targets:
     platform: iOS
     sources:
       - path: App
+        excludes:
+          - DeviceConsole.swift
+          - NativePairingView.swift
       - path: Vendor/GestaltX/GestaltX/DeviceConsole.swift
-      - path: Vendor/GestaltX/GestaltX/PairableHostAdvertiser.swift
       - path: Vendor/GestaltX/GestaltX/Localization.swift
     dependencies:
       - framework: Vendor/GestaltX/Native/DeviceConsole/build/GXDeviceConsole.xcframework
