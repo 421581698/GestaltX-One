@@ -1,11 +1,12 @@
 import Foundation
+import Combine
 import Network
 import UserNotifications
 import UIKit
 
 @MainActor
 final class NativePairingCoordinator: ObservableObject {
-    enum State {
+    enum State: Equatable {
         case idle
         case advertising
         case awaitingApproval
@@ -71,7 +72,7 @@ final class NativePairingCoordinator: ObservableObject {
                     },
                     pin: { [weak self] value in
                         Task { @MainActor in
-                            self?.pin = PairingNotifier.formatted(value)
+                            self?.pin = Self.formattedPairingCode(value)
                             self?.state = .awaitingApproval
                             await self?.notifyPairingCode(value)
                         }
@@ -148,7 +149,7 @@ final class NativePairingCoordinator: ObservableObject {
 
         let content = UNMutableNotificationContent()
         content.title = "GestaltX One pairing code"
-        content.body = "\(PairingNotifier.formatted(code)) — enter this code in iOS Settings to finish pairing."
+        content.body = "\(Self.formattedPairingCode(code)) — enter this code in iOS Settings to finish pairing."
         content.sound = .default
         content.threadIdentifier = "gestaltxone.pairing"
         try? await center.add(UNNotificationRequest(
@@ -156,6 +157,13 @@ final class NativePairingCoordinator: ObservableObject {
             content: content,
             trigger: nil
         ))
+    }
+
+    private static func formattedPairingCode(_ code: String) -> String {
+        let digits = code.filter(\.isNumber)
+        guard digits.count == 6 else { return code }
+        let split = digits.index(digits.startIndex, offsetBy: 3)
+        return "\(digits[..<split]) \(digits[split...])"
     }
 
     private func clearPairingNotification() async {

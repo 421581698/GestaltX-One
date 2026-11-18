@@ -92,7 +92,8 @@ private struct NativePairingView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                 Text(pin)
-                                    .font(.system(size: 30, weight: .bold, design: .rounded).monospacedDigit())
+                                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                                    .monospacedDigit()
                                     .textSelection(.enabled)
                             }
                             if let error = pairing.errorMessage {

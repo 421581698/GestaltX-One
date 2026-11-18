@@ -41,8 +41,15 @@ actor NativePairingRecordStore {
     /// A previous record is not overwritten implicitly.
     func preparePairingDestination() throws -> URL {
         try ensurePrivateDirectories()
-        guard !fileManager.fileExists(atPath: nativeRecordURL.path) else {
+        if fileManager.fileExists(atPath: indexURL.path) {
             throw StoreError.existingPairingRecord
+        }
+        if fileManager.fileExists(atPath: nativeRecordURL.path) {
+            // A failed earlier handshake may leave a partial file without a
+            // committed metadata index. Remove only a bounded regular file;
+            // never follow or delete a symlink supplied at this fixed path.
+            try validateRegularFile(nativeRecordURL, maximumSize: maximumPairingFileSize)
+            try fileManager.removeItem(at: nativeRecordURL)
         }
         return nativeRecordURL
     }

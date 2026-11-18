@@ -27,15 +27,13 @@ targets:
         SWIFT_VERSION: "5.9"
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) GXDEVICECONSOLE"
         OTHER_LDFLAGS: "$(inherited) -lc++"
-        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "GestaltX One uses your local network to advertise its pairing host when you explicitly start device pairing."
-        INFOPLIST_KEY_NSBonjourServices: ["_remotepairing-pairable-host._tcp"]
         "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_GESTALTX_CONTROL_PLANE_URL: "https://configure-your-domain.example"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
     info:
       properties:
         NSLocalNetworkUsageDescription: "GestaltX One advertises a temporary local pairing host so you can pair this iPhone through iOS Developer Mode."
         NSBonjourServices:
           - _remotepairing-pairable-host._tcp
-        TARGETED_DEVICE_FAMILY: "1,2"
-        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
