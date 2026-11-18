@@ -31,9 +31,9 @@ public actor BackupStore {
 
         try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         let identifier = UUID()
-        let fileName = "(safeName)-(identifier.uuidString).backup"
+        let fileName = "\(safeName)-\(identifier.uuidString).backup"
         let destination = directory.appendingPathComponent(fileName, isDirectory: false)
-        try data.write(to: destination, options: [.atomic, .completeFileProtectionUnlessOpen])
+        try data.write(to: destination, options: [.atomic])
 
         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         return BackupReceipt(
