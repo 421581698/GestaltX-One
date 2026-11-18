@@ -70,6 +70,7 @@ final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithRe
                 data: [
                     "operatingSystem": snapshot.operatingSystem,
                     "operatingSystemVersion": snapshot.operatingSystemVersion,
+                    "deviceModelIdentifier": snapshot.deviceModelIdentifier,
                     "isSimulator": String(snapshot.isSimulator)
                 ]
             )
