@@ -48,6 +48,48 @@ final class GestaltXOneCoreTests: XCTestCase {
         XCTAssertTrue(verified)
     }
 
+    func testBackupReceiptCannotEscapeStoreDirectory() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = BackupStore(directory: directory)
+        let valid = try await store.createBackup(data: Data("safe".utf8), name: "device")
+        let forged = BackupReceipt(
+            identifier: valid.identifier,
+            fileName: "../outside.backup",
+            byteCount: valid.byteCount,
+            sha256: valid.sha256,
+            createdAt: valid.createdAt
+        )
+        do {
+            _ = try await store.verifyBackup(forged)
+            XCTFail("A path-traversing receipt must be rejected")
+        } catch let error as BackupStoreError {
+            XCTAssertEqual(error, .invalidReceipt)
+        }
+    }
+
+    func testBackupReceiptMustMatchItsIdentifier() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = BackupStore(directory: directory)
+        let valid = try await store.createBackup(data: Data("safe".utf8), name: "device")
+        let forged = BackupReceipt(
+            identifier: UUID(),
+            fileName: valid.fileName,
+            byteCount: valid.byteCount,
+            sha256: valid.sha256,
+            createdAt: valid.createdAt
+        )
+        do {
+            _ = try await store.verifyBackup(forged)
+            XCTFail("A receipt with a mismatched identifier must be rejected")
+        } catch let error as BackupStoreError {
+            XCTAssertEqual(error, .invalidReceipt)
+        }
+    }
+
     func testUnsafeBackupNameIsRejected() async {
         let directory = FileManager.default.temporaryDirectory
         let store = BackupStore(directory: directory)
