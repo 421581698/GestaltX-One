@@ -36,6 +36,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         IPHONEOS_DEPLOYMENT_TARGET: "16.0"
     info:
+      path: App/Info.plist
       properties:
         NSLocalNetworkUsageDescription: "GestaltX One advertises a temporary local pairing host so you can pair this iPhone through iOS Developer Mode."
         NSBonjourServices:
