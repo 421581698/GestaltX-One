@@ -18,8 +18,10 @@ A safety-first iPhone task platform with a web control surface and a native iOS 
 ```
 Sources/GestaltXOneCore/   Cross-platform task, bridge, device and backup foundations
 Tests/GestaltXOneCoreTests/
-App/                       iOS host integration notes and entry-point scaffold
-.github/workflows/         Swift package CI
+App/                       SwiftUI iOS host and WKWebView bridge
+Web/                       Typed TypeScript bridge client
+project.yml                XcodeGen project definition
+.github/workflows/         Swift package and iOS simulator CI
 ```
 
 ## Development
@@ -38,6 +40,18 @@ swift test
 4. Mutating actions are not exposed in this initial version.
 5. Backups are created and verified before future write operations.
 6. iOS signing, Developer Mode, local network permissions, pairing, and system confirmation remain under Apple's control. This project does not bypass them.
+
+## Build the iOS host
+
+Install Xcode and XcodeGen, then run:
+
+```sh
+brew install xcodegen
+xcodegen generate
+xcodebuild -project GestaltXOne.xcodeproj -scheme GestaltXOne -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+```
+
+Before a real device build, replace the placeholder `GESTALTX_CONTROL_PLANE_URL` build setting with a domain you control and configure that origin's Content Security Policy. The host intentionally refuses non-HTTPS origins and cross-origin navigation.
 
 ## Current supported actions
 
