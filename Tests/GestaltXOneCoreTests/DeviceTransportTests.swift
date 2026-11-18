@@ -37,7 +37,7 @@ final class DeviceTransportTests: XCTestCase {
         } catch let error as DeviceTransportError {
             XCTAssertEqual(error, .unavailable)
         } catch {
-            XCTFail("Unexpected error: \\(error)")
+            XCTFail("Unexpected error: \(error)")
         }
     }
 }
