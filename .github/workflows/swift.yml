@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# Queue commits on the same ref instead of cancelling every earlier run
+# while a multi-file change is being committed.
+concurrency:
+  group: swift-ios-ci-\${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   core:
     runs-on: macos-14
