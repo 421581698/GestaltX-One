@@ -2,7 +2,7 @@
 
 A safety-first iPhone task platform with a web control surface and a native iOS execution host.
 
-> Status: foundation scaffold. This repository does not yet install an iOS app, pair a device, or modify MobileGestalt. Those capabilities require a separately built and signed native app and explicit iOS authorization.
+> Status: native build foundation. CI now cross-compiles the pinned DeviceConsole Rust library for iPhone ARM64 and iOS Simulator ARM64, then links its XCFramework into the iOS host. The app still does not initiate pairing or modify MobileGestalt; those require the native pairing UI, an authorized device session, and a separate MobileGestalt adapter.
 
 ## Architecture
 
@@ -11,7 +11,7 @@ A safety-first iPhone task platform with a web control surface and a native iOS 
 - **Device adapter / transport**: reports only capabilities the installed host can verify. `DeviceTransport` defines the pairing boundary; the current `UnavailableDeviceTransport` intentionally performs no discovery or pairing.
 - **Task runtime**: tracks task lifecycle, cancellation, and structured events.
 - **Backup store**: writes versioned, integrity-checkable backup artifacts before any future mutation workflow.
-- **Upstream native component**: `Vendor/GestaltX` pins the official GestaltX repository at a reviewed commit. Its `Native/DeviceConsole` crate is GPL-3.0-only and is tested separately. The current app does not yet link the generated XCFramework or invoke pairing.
+- **Upstream native component**: `Vendor/GestaltX` pins the official GestaltX repository at a reviewed commit. CI builds its GPL-3.0-only `Native/DeviceConsole` crate for device and simulator and links the resulting XCFramework into the app. The current app exposes only a small session lifecycle wrapper; pairing is not yet invoked.
 
 ## Repository layout
 
@@ -44,12 +44,15 @@ swift test
 
 ## Build the iOS host
 
-Install Xcode and XcodeGen, then run:
+Install Xcode, XcodeGen, Rust, CMake and NASM. Initialize the pinned submodule and build the native XCFramework before generating the Xcode project:
 
 ```sh
-brew install xcodegen
+git submodule update --init --recursive
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+brew install xcodegen cmake nasm
+Vendor/GestaltX/Native/DeviceConsole/build-xcframework.sh
 xcodegen generate
-xcodebuild -project GestaltXOne.xcodeproj -scheme GestaltXOne -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project GestaltXOne.xcodeproj -scheme GestaltXOne -sdk iphonesimulator -arch arm64 -configuration Debug CODE_SIGNING_ALLOWED=NO build
 ```
 
 Before a real device build, replace the placeholder `GESTALTX_CONTROL_PLANE_URL` build setting with a domain you control and configure that origin's Content Security Policy. The host intentionally refuses non-HTTPS origins and cross-origin navigation.
@@ -58,7 +61,7 @@ Before a real device build, replace the placeholder `GESTALTX_CONTROL_PLANE_URL`
 
 - `device.getInfo`
 - `device.getCapabilities`
-- `device.getPairingStatus` (reports explicit unavailable state and missing prerequisites until the native adapter is linked and wired)
+- `device.getPairingStatus` (reports explicit unavailable state until the native pairing flow is wired)
 - `backup.getStatus`
 - `task.getStatus`
 

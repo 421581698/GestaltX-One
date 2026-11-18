@@ -90,6 +90,7 @@ final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithRe
                     "mobileGestaltReadAvailable": String(value.mobileGestaltReadAvailable),
                     "mobileGestaltWriteAvailable": String(value.mobileGestaltWriteAvailable),
                     "devicePairingAvailable": String(value.devicePairingAvailable),
+                    "nativeDeviceConsoleLinked": String(GXDeviceConsoleRuntime.isLinked),
                     "notes": value.notes.joined(separator: " | ")
                 ]
             )
