@@ -71,7 +71,7 @@ private struct NativePairingView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("1. Start pairing here to advertise the temporary pairing host.")
                             Text("2. Open Settings → Privacy & Security → Developer Mode.")
-                            Text("3. Tap Pair with GestaltX and enter the six-digit code shown below or in the notification.")
+                            Text("3. Tap Pair with GestaltX and enter the six-digit code shown below.")
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -113,13 +113,6 @@ private struct NativePairingView: View {
                         .disabled(!GXDeviceConsoleRuntime.isLinked || pairing.isBusy || pairing.pairedDevice != nil)
 
                         if pairing.isBusy {
-                            Button {
-                                openDeveloperSettings()
-                            } label: {
-                                Label("Open Settings", systemImage: "gear")
-                            }
-                            .buttonStyle(.bordered)
-
                             Button(role: .destructive) {
                                 pairing.cancel()
                             } label: {
@@ -152,24 +145,7 @@ private struct NativePairingView: View {
         }
     }
 
-    private func openDeveloperSettings() {
-        let candidates = [
-            "App-Prefs:root=Privacy&path=DEVELOPER",
-            "App-Prefs:Privacy&path=Developer"
-        ]
-        for value in candidates {
-            guard let url = URL(string: value) else { continue }
-            UIApplication.shared.open(url, options: [:]) { opened in
-                if !opened, let settings = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(settings)
-                }
-            }
-            return
-        }
-        if let settings = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(settings)
-        }
-    }
+
 }
 
 private extension NativePairingCoordinator.State {
