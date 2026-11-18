@@ -26,6 +26,7 @@ final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithRe
         guard message.name == "gestaltx",
               message.frameInfo.isMainFrame,
               origin.protocol == "https",
+              origin.port == 443,
               origin.host.lowercased() == expectedHost else {
             replyHandler(nil, "Untrusted bridge origin")
             return
@@ -34,6 +35,7 @@ final class GestaltXNativeMessageHandler: NSObject, WKScriptMessageHandlerWithRe
         guard let body = message.body as? [String: Any],
               JSONSerialization.isValidJSONObject(body),
               let data = try? JSONSerialization.data(withJSONObject: body),
+              data.count <= 65_536,
               let request = try? JSONDecoder().decode(BridgeRequest.self, from: data) else {
             replyHandler(nil, "Invalid bridge request")
             return
