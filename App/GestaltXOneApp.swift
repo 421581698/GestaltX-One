@@ -39,7 +39,6 @@ private struct RootView: View {
 @MainActor
 private struct NativePairingView: View {
     @StateObject private var pairing = NativePairingCoordinator()
-    @State private var developerModeConfirmed = false
 
     var body: some View {
         NavigationStack {
@@ -70,11 +69,9 @@ private struct NativePairingView: View {
 
                     GroupBox("Before pairing") {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("1. Enable Developer Mode in Settings → Privacy & Security → Developer Mode.")
-                            Text("2. Return here and confirm that Developer Mode is enabled.")
-                            Text("3. Start pairing, then follow the pairing prompt in Settings.")
-                            Toggle("I have enabled Developer Mode on this iPhone", isOn: $developerModeConfirmed)
-                                .font(.subheadline)
+                            Text("1. Start pairing here to advertise the temporary pairing host.")
+                            Text("2. Open Settings → Privacy & Security → Developer Mode.")
+                            Text("3. Tap Pair with GestaltX and enter the six-digit code shown below or in the notification.")
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -107,15 +104,22 @@ private struct NativePairingView: View {
 
                     HStack {
                         Button {
-                            pairing.beginPairing(developerModeConfirmed: developerModeConfirmed)
+                            pairing.beginPairing()
                         } label: {
                             Label("Start pairing", systemImage: "link")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(!developerModeConfirmed || !GXDeviceConsoleRuntime.isLinked || pairing.isBusy || pairing.pairedDevice != nil)
+                        .disabled(!GXDeviceConsoleRuntime.isLinked || pairing.isBusy || pairing.pairedDevice != nil)
 
                         if pairing.isBusy {
+                            Button {
+                                openDeveloperSettings()
+                            } label: {
+                                Label("Open Settings", systemImage: "gear")
+                            }
+                            .buttonStyle(.bordered)
+
                             Button(role: .destructive) {
                                 pairing.cancel()
                             } label: {
@@ -134,7 +138,7 @@ private struct NativePairingView: View {
                         .buttonStyle(.bordered)
                     }
 
-                    Text("The pairing code is temporary. Keep this app open while switching to Settings. iOS may suspend background work; if pairing stops, return here and retry.")
+                    Text("The pairing code is temporary. Keep this app open while switching to Settings. iOS may suspend background work; if pairing stops, return here and retry. GestaltX One does not bypass Developer Mode or system confirmation.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -145,6 +149,25 @@ private struct NativePairingView: View {
             .task {
                 await pairing.refresh()
             }
+        }
+    }
+
+    private func openDeveloperSettings() {
+        let candidates = [
+            "App-Prefs:root=Privacy&path=DEVELOPER",
+            "App-Prefs:Privacy&path=Developer"
+        ]
+        for value in candidates {
+            guard let url = URL(string: value) else { continue }
+            UIApplication.shared.open(url, options: [:]) { opened in
+                if !opened, let settings = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settings)
+                }
+            }
+            return
+        }
+        if let settings = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settings)
         }
     }
 }

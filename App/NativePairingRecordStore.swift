@@ -78,16 +78,21 @@ actor NativePairingRecordStore {
         return index.metadata
     }
 
-    /// Delete the credential file before its metadata index.
+    /// Remove only the two fixed paths owned by this store. FileManager removes
+    /// a symlink itself rather than following it, allowing recovery from a
+    /// corrupt index without touching any target outside this directory.
     func clear() throws {
-        if fileManager.fileExists(atPath: nativeRecordURL.path) {
-            try validateRegularFile(nativeRecordURL, maximumSize: maximumPairingFileSize)
-            try fileManager.removeItem(at: nativeRecordURL)
+        try removeOwnedEntry(nativeRecordURL)
+        try removeOwnedEntry(indexURL)
+    }
+
+    private func removeOwnedEntry(_ url: URL) throws {
+        guard fileManager.fileExists(atPath: url.path) else { return }
+        let values = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+        guard values.isRegularFile == true || values.isSymbolicLink == true else {
+            throw StoreError.invalidFile
         }
-        if fileManager.fileExists(atPath: indexURL.path) {
-            try validateRegularFile(indexURL, maximumSize: maximumIndexSize)
-            try fileManager.removeItem(at: indexURL)
-        }
+        try fileManager.removeItem(at: url)
     }
 
     private func ensurePrivateDirectories() throws {

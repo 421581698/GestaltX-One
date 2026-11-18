@@ -45,16 +45,12 @@ final class NativePairingCoordinator: ObservableObject {
         }
     }
 
-    func beginPairing(developerModeConfirmed: Bool) {
-        guard developerModeConfirmed else {
-            errorMessage = "Confirm that Developer Mode is enabled in iOS Settings first."
-            return
-        }
+    func beginPairing() {
         guard GXDeviceConsoleRuntime.isLinked else {
             errorMessage = "The native device console is not linked in this build."
             return
         }
-        guard !isBusy, pairedDevice == nil else { return }
+        guard pairingTask == nil, pairedDevice == nil else { return }
 
         errorMessage = nil
         pin = nil

@@ -2,16 +2,16 @@
 
 A safety-first iPhone task platform with a web control surface and a native iOS execution host.
 
-> Status: native build foundation. CI now cross-compiles the pinned DeviceConsole Rust library for iPhone ARM64 and iOS Simulator ARM64, then links its XCFramework into the iOS host. The app still does not initiate pairing or modify MobileGestalt; those require the native pairing UI, an authorized device session, and a separate MobileGestalt adapter.
+> Status: native pairing flow integrated; real-device acceptance remains outstanding. CI cross-compiles the pinned DeviceConsole Rust library for iPhone ARM64 and iOS Simulator ARM64 and links it into the iOS host. The native Device tab can start the RPPairing host, advertise it over Bonjour, display the temporary pairing code, and store a verified pairing plist in protected local storage. MobileGestalt read/write is not implemented.
 
 ## Architecture
 
 - **Web control plane**: creates tasks and presents progress. It never receives arbitrary system-command access.
 - **Native bridge**: accepts a small allowlist of typed requests from the first-party web origin.
-- **Device adapter / transport**: reports only capabilities the installed host can verify. `DeviceTransport` defines the pairing boundary; the current `UnavailableDeviceTransport` intentionally performs no discovery or pairing.
+- **Device pairing**: the native Device tab invokes the pinned RPPairing host after an explicit user tap, advertises it on the local network, and persists credentials under complete file protection. The web bridge cannot start pairing.
 - **Task runtime**: tracks task lifecycle, cancellation, and structured events.
 - **Backup store**: writes versioned, integrity-checkable backup artifacts before any future mutation workflow.
-- **Upstream native component**: `Vendor/GestaltX` pins the official GestaltX repository at a reviewed commit. CI builds its GPL-3.0-only `Native/DeviceConsole` crate for device and simulator and links the resulting XCFramework into the app. The current app exposes only a small session lifecycle wrapper; pairing is not yet invoked.
+- **Upstream native component**: `Vendor/GestaltX` pins the official GestaltX repository at a reviewed commit. CI builds its GPL-3.0-only `Native/DeviceConsole` crate for device and simulator and links the resulting XCFramework into the app. The app compiles the upstream Swift FFI wrapper and a Bonjour relay.
 
 ## Repository layout
 
@@ -61,8 +61,8 @@ Before a real device build, replace the placeholder `GESTALTX_CONTROL_PLANE_URL`
 
 - `device.getInfo`
 - `device.getCapabilities`
-- `device.getPairingStatus` (reports explicit unavailable state until the native pairing flow is wired)
+- `device.getPairingStatus` (read-only status; pairing is initiated from the native Device tab)
 - `backup.getStatus`
 - `task.getStatus`
 
-No MobileGestalt read/write operation or working pairing UI is claimed as implemented. The upstream repository is pinned as a Git submodule, not copied into the app's source tree. Its native console supports pairing/RSD transport only; MobileGestalt access is a separate upstream path and is not enabled here. Any distributed combined build incorporating the GPL-3.0 component must preserve notices and meet the corresponding-source and licensing obligations. See `Vendor/README.md`.
+The native pairing flow has not yet been accepted on a physical iPhone. iOS may suspend the app when switching to Settings, so the UI warns that pairing can require a retry. No MobileGestalt read/write operation is implemented. The upstream native console supports RPPairing and RSD/syslog transport only; MobileGestalt access is a separate capability. This app statically links the upstream GPL-3.0-only component, so distribution of the combined binary must comply with GPL-3.0 and provide the corresponding source. See `LICENSE`, `NOTICE.md`, and `Vendor/README.md`.
