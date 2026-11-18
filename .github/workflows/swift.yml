@@ -9,8 +9,6 @@ on:
 permissions:
   contents: read
 
-# Queue commits on the same ref instead of cancelling every earlier run
-# while a multi-file change is being committed.
 concurrency:
   group: swift-ios-ci-${{ github.ref }}
   cancel-in-progress: false
@@ -20,6 +18,8 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Select Swift
         run: swift --version
       - name: Build core package
@@ -27,10 +27,25 @@ jobs:
       - name: Test core package
         run: swift test
 
+  native-console:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Verify native console dependency
+        run: test -f Vendor/GestaltX/Native/DeviceConsole/Cargo.toml
+      - name: Test native console host configuration
+        run: cargo test --locked --manifest-path Vendor/GestaltX/Native/DeviceConsole/Cargo.toml
+
   ios-app:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project

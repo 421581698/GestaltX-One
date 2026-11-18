@@ -1,0 +1,3 @@
+[submodule "Vendor/GestaltX"]
+	path = Vendor/GestaltX
+	url = https://github.com/huamidev/GestaltX.git
