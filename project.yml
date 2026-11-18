@@ -11,12 +11,15 @@ targets:
     type: application
     platform: iOS
     sources:
-      - path: App
-        excludes:
-          - DeviceConsole.swift
-          - NativePairingView.swift
-      - path: Vendor/GestaltX/GestaltX/DeviceConsole.swift
-      - path: Vendor/GestaltX/GestaltX/Localization.swift
+      - App/GXDeviceConsoleRuntime.swift
+      - App/GestaltXNativeMessageHandler.swift
+      - App/GestaltXOneApp.swift
+      - App/GestaltXWebView.swift
+      - App/NativePairingCoordinator.swift
+      - App/NativePairingRecordStore.swift
+      - App/PairableHostAdvertiser.swift
+      - Vendor/GestaltX/GestaltX/DeviceConsole.swift
+      - Vendor/GestaltX/GestaltX/Localization.swift
     dependencies:
       - framework: Vendor/GestaltX/Native/DeviceConsole/build/GXDeviceConsole.xcframework
         embed: false
