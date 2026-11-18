@@ -4,7 +4,7 @@ import XCTest
 final class GestaltXOneCoreTests: XCTestCase {
     func testBridgeSessionRejectsReplayAndWrongNonce() async {
         let session = BridgeSession()
-        let nonce = await session.nonce
+        let nonce = session.nonce
         let request = BridgeRequest(action: .deviceGetInfo, nonce: nonce)
 
         let firstAcceptance = await session.validateAndConsume(request)
