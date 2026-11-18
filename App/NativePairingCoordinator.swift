@@ -65,6 +65,7 @@ final class NativePairingCoordinator: ObservableObject {
             guard let self else { return }
             do {
                 let destination = try await store.preparePairingDestination()
+                try Task.checkCancellation()
                 let outcome = try await DeviceConsole.shared.runPairing(
                     bindAddr: "0.0.0.0",
                     port: 0,
